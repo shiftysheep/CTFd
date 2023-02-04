@@ -38,6 +38,8 @@ CTFd is a Capture The Flag framework focusing on ease of use and customizability
 - Customize everything using the [plugin](https://docs.ctfd.io/docs/plugins/overview) and [theme](https://docs.ctfd.io/docs/themes/overview) interfaces
 - Importing and Exporting of CTF data for archival
 - And a lot more...
+## Bonus Feature
+- User/Team capable [docker challenge plugin](https://github.com/offsecginger/CTFd-Docker-Challenges) but improved with support for docker services and already configured docker secrets to mount flags
 
 ## Install
 

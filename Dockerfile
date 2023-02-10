@@ -1,7 +1,5 @@
 FROM python:3.9-slim-buster as build
 
-WORKDIR /opt/CTFd
-
 # hadolint ignore=DL3008
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -14,6 +12,8 @@ RUN apt-get update \
     && python -m venv /opt/venv
 
 ENV PATH="/opt/venv/bin:$PATH"
+
+WORKDIR /opt/CTFd
 
 COPY . /opt/CTFd
 

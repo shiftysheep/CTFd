@@ -40,6 +40,9 @@ class DockerServiceChallengeType(BaseChallenge):
 		:return:
 		"""
         data = request.form or request.get_json()
+	data['docker_secrets'] = data['docker_secrets_array']
+        data['docker_type'] = 'service'
+        del data['docker_secrets_array']
         for attr, value in data.items():
             setattr(challenge, attr, value)
 

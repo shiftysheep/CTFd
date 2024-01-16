@@ -20,7 +20,7 @@ from CTFd.utils.config import (
     is_setup,
 )
 from CTFd.utils.config.pages import get_pages
-from CTFd.utils.dates import isoformat, unix_time, unix_time_millis
+from CTFd.utils.dates import isoformat, unix_time, unix_time_millis, unix_time_to_utc
 from CTFd.utils.events import EventManager, RedisEventManager
 from CTFd.utils.humanize.words import pluralize
 from CTFd.utils.modes import generate_account_url, get_mode_as_word
@@ -43,16 +43,23 @@ from CTFd.utils.user import (
 )
 
 
+def init_cli(app):
+    from CTFd.cli import _cli
+
+    app.register_blueprint(_cli, cli_group=None)
+
+
 def init_template_filters(app):
     app.jinja_env.filters["markdown"] = markdown
     app.jinja_env.filters["unix_time"] = unix_time
     app.jinja_env.filters["unix_time_millis"] = unix_time_millis
+    app.jinja_env.filters["unix_time_to_utc"] = unix_time_to_utc
     app.jinja_env.filters["isoformat"] = isoformat
     app.jinja_env.filters["pluralize"] = pluralize
 
 
 def init_template_globals(app):
-    from CTFd.constants import JINJA_ENUMS
+    from CTFd.constants import JINJA_ENUMS  # noqa: I001
     from CTFd.constants.assets import Assets
     from CTFd.constants.config import Configs
     from CTFd.constants.plugins import Plugins
@@ -204,6 +211,7 @@ def init_request_processors(app):
                 "views.themes",
                 "views.files",
                 "views.healthcheck",
+                "views.robots",
             ):
                 return
             else:
@@ -275,7 +283,15 @@ def init_request_processors(app):
     @app.before_request
     def tokens():
         token = request.headers.get("Authorization")
-        if token and request.content_type == "application/json":
+        if token and (
+            request.mimetype == "application/json"
+            # Specially allow multipart/form-data for file uploads
+            or (
+                request.endpoint == "api.files_files_list"
+                and request.method == "POST"
+                and request.mimetype == "multipart/form-data"
+            )
+        ):
             try:
                 token_type, token = token.split(" ", 1)
                 user = lookup_user_token(token)

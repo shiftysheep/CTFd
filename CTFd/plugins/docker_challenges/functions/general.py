@@ -97,9 +97,7 @@ def get_unavailable_ports(docker):
         endpoint = i["Endpoint"]["Spec"]
         if endpoint != {}:
             result.extend(
-                p["PublishedPort"]
-                for p in endpoint["Ports"]
-                if p.get("PublishedPort")
+                p["PublishedPort"] for p in endpoint["Ports"] if p.get("PublishedPort")
             )
     return result
 

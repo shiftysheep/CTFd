@@ -1,4 +1,5 @@
 import contextlib
+
 from flask import Blueprint
 
 from CTFd.models import (

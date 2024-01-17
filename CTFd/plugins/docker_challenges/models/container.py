@@ -32,13 +32,13 @@ class DockerChallengeType(BaseChallenge):
     @staticmethod
     def update(challenge, request):
         """
-		This method is used to update the information associated with a challenge. This should be kept strictly to the
-		Challenges table and any child tables.
+        This method is used to update the information associated with a challenge. This should be kept strictly to the
+        Challenges table and any child tables.
 
-		:param challenge:
-		:param request:
-		:return:
-		"""
+        :param challenge:
+        :param request:
+        :return:
+        """
         data = request.form or request.get_json()
         for attr, value in data.items():
             setattr(challenge, attr, value)
@@ -49,12 +49,12 @@ class DockerChallengeType(BaseChallenge):
     @staticmethod
     def delete(challenge):
         """
-		This method is used to delete the resources used by a challenge.
-		NOTE: Will need to kill all containers here
+        This method is used to delete the resources used by a challenge.
+        NOTE: Will need to kill all containers here
 
-		:param challenge:
-		:return:
-		"""
+        :param challenge:
+        :return:
+        """
         Fails.query.filter_by(challenge_id=challenge.id).delete()
         Solves.query.filter_by(challenge_id=challenge.id).delete()
         Flags.query.filter_by(challenge_id=challenge.id).delete()
@@ -71,11 +71,11 @@ class DockerChallengeType(BaseChallenge):
     @staticmethod
     def read(challenge):
         """
-		This method is in used to access the data of a challenge in a format processable by the front end.
+        This method is in used to access the data of a challenge in a format processable by the front end.
 
-		:param challenge:
-		:return: Challenge object, data dictionary to be returned to the user
-		"""
+        :param challenge:
+        :return: Challenge object, data dictionary to be returned to the user
+        """
         challenge = DockerChallenge.query.filter_by(id=challenge.id).first()
         data = {
             'id': challenge.id,
@@ -99,11 +99,11 @@ class DockerChallengeType(BaseChallenge):
     @staticmethod
     def create(request):
         """
-		This method is used to process the challenge creation request.
+        This method is used to process the challenge creation request.
 
-		:param request:
-		:return:
-		"""
+        :param request:
+        :return:
+        """
         data = request.form or request.get_json()
         data['docker_type'] = 'container'
         challenge = DockerChallenge(**data)
@@ -114,14 +114,14 @@ class DockerChallengeType(BaseChallenge):
     @staticmethod
     def attempt(challenge, request):
         """
-		This method is used to check whether a given input is right or wrong. It does not make any changes and should
-		return a boolean for correctness and a string to be shown to the user. It is also in charge of parsing the
-		user's input from the request itself.
+        This method is used to check whether a given input is right or wrong. It does not make any changes and should
+        return a boolean for correctness and a string to be shown to the user. It is also in charge of parsing the
+        user's input from the request itself.
 
-		:param challenge: The Challenge object from the database
-		:param request: The request the user submitted
-		:return: (boolean, string)
-		"""
+        :param challenge: The Challenge object from the database
+        :param request: The request the user submitted
+        :return: (boolean, string)
+        """
 
         data = request.form or request.get_json()
         print(request.get_json())
@@ -136,13 +136,13 @@ class DockerChallengeType(BaseChallenge):
     @staticmethod
     def solve(user, team, challenge, request):
         """
-		This method is used to insert Solves into the database in order to mark a challenge as solved.
+        This method is used to insert Solves into the database in order to mark a challenge as solved.
 
-		:param team: The Team object from the database
-		:param chal: The Challenge object from the database
-		:param request: The request the user submitted
-		:return:
-		"""
+        :param team: The Team object from the database
+        :param chal: The Challenge object from the database
+        :param request: The request the user submitted
+        :return:
+        """
         data = request.form or request.get_json()
         submission = data["submission"].strip()
         docker = DockerConfig.query.filter_by(id=1).first()
@@ -172,13 +172,13 @@ class DockerChallengeType(BaseChallenge):
     @staticmethod
     def fail(user, team, challenge, request):
         """
-		This method is used to insert Fails into the database in order to mark an answer incorrect.
+        This method is used to insert Fails into the database in order to mark an answer incorrect.
 
-		:param team: The Team object from the database
-		:param chal: The Challenge object from the database
-		:param request: The request the user submitted
-		:return:
-		"""
+        :param team: The Team object from the database
+        :param chal: The Challenge object from the database
+        :param request: The request the user submitted
+        :return:
+        """
         data = request.form or request.get_json()
         submission = data["submission"].strip()
         wrong = Fails(

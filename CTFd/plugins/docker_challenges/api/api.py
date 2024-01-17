@@ -138,9 +138,9 @@ class ContainerAPI(Resource):
 @active_docker_namespace.route("", methods=['POST', 'GET'])
 class DockerStatus(Resource):
     """
-	The Purpose of this API is to retrieve a public JSON string of all docker containers
-	in use by the current team/user.
-	"""
+    The Purpose of this API is to retrieve a public JSON string of all docker containers
+    in use by the current team/user.
+    """
 
     @authed_only
     def get(self):
@@ -174,9 +174,9 @@ class DockerStatus(Resource):
 @docker_namespace.route("", methods=['POST', 'GET'])
 class DockerAPI(Resource):
     """
-	This is for creating Docker Challenges. The purpose of this API is to populate the Docker Image Select form
-	object in the Challenge Creation Screen.
-	"""
+    This is for creating Docker Challenges. The purpose of this API is to populate the Docker Image Select form
+    object in the Challenge Creation Screen.
+    """
 
     @admins_only
     def get(self):
@@ -203,9 +203,9 @@ class DockerAPI(Resource):
 @secret_namespace.route("", methods=['POST', 'GET'])
 class SecretAPI(Resource):
     """
-	This is for creating Docker Challenges. The purpose of this API is to populate the Docker Secret Select form
-	object in the Challenge Creation Screen.
-	"""
+    This is for creating Docker Challenges. The purpose of this API is to populate the Docker Secret Select form
+    object in the Challenge Creation Screen.
+    """
 
     @admins_only
     def get(self):

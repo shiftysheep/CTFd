@@ -8,8 +8,8 @@ from CTFd.models import Challenges, db
 
 class DockerConfig(db.Model):
     """
-	Docker Config Model. This model stores the config for docker API connections.
-	"""
+    Docker Config Model. This model stores the config for docker API connections.
+    """
     id = db.Column(db.Integer, primary_key=True)
     hostname = db.Column("hostname", db.String(64), index=True)
     tls_enabled = db.Column("tls_enabled", db.Boolean, default=False, index=True)
@@ -21,8 +21,8 @@ class DockerConfig(db.Model):
 
 class DockerChallengeTracker(db.Model):
     """
-	Docker Container Tracker. This model stores the users/teams active docker containers.
-	"""
+    Docker Container Tracker. This model stores the users/teams active docker containers.
+    """
     id = db.Column(db.Integer, primary_key=True)
     team_id = db.Column("team_id", db.String(64), index=True)
     user_id = db.Column("user_id", db.String(64), index=True)

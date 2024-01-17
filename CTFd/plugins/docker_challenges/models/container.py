@@ -1,3 +1,4 @@
+import contextlib
 from flask import Blueprint
 
 from CTFd.models import (
@@ -158,29 +159,28 @@ class DockerChallengeType(BaseChallenge):
         data = request.form or request.get_json()
         submission = data["submission"].strip()
         docker = DockerConfig.query.filter_by(id=1).first()
-        try:
-            if is_teams_mode():
-                docker_containers = (
+        with contextlib.suppress(Exception):
+            docker_containers = (
+                (
                     DockerChallengeTracker.query.filter_by(
                         docker_image=challenge.docker_image
                     )
                     .filter_by(team_id=team.id)
                     .first()
                 )
-            else:
-                docker_containers = (
+                if is_teams_mode()
+                else (
                     DockerChallengeTracker.query.filter_by(
                         docker_image=challenge.docker_image
                     )
                     .filter_by(user_id=user.id)
                     .first()
                 )
+            )
             delete_container(docker, docker_containers.instance_id)
             DockerChallengeTracker.query.filter_by(
                 instance_id=docker_containers.instance_id
             ).delete()
-        except:
-            pass
         solve = Solves(
             user_id=user.id,
             team_id=team.id if team else None,

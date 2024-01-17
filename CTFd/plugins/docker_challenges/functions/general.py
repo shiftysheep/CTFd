@@ -51,7 +51,7 @@ def do_request(
             r = requests.get(url=f"{BASE_URL}{url}", headers=headers)
         elif method == "POST":
             r = requests.post(url=f"{BASE_URL}{url}", headers=headers, data=data)
-    except:
+    except Exception:
         print(traceback.print_exc())
         r = []
     return r

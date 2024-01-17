@@ -1,7 +1,15 @@
 from flask import Blueprint
 
-from CTFd.models import (ChallengeFiles, Challenges, Fails, Flags, Hints,
-                         Solves, Tags, db)
+from CTFd.models import (
+    ChallengeFiles,
+    Challenges,
+    Fails,
+    Flags,
+    Hints,
+    Solves,
+    Tags,
+    db,
+)
 from CTFd.plugins.challenges import BaseChallenge
 from CTFd.plugins.flags import get_flag_class
 from CTFd.utils.config import is_teams_mode
@@ -9,25 +17,29 @@ from CTFd.utils.uploads import delete_file
 from CTFd.utils.user import get_ip
 
 from ..functions.containers import delete_container
-from ..models.models import (DockerChallenge, DockerChallengeTracker,
-                             DockerConfig)
+from ..models.models import DockerChallenge, DockerChallengeTracker, DockerConfig
 
 
 class DockerChallengeType(BaseChallenge):
     id = "docker"
     name = "docker"
     templates = {
-        'create': '/plugins/docker_challenges/assets/create.html',
-        'update': '/plugins/docker_challenges/assets/update.html',
-        'view': '/plugins/docker_challenges/assets/view.html',
+        "create": "/plugins/docker_challenges/assets/create.html",
+        "update": "/plugins/docker_challenges/assets/update.html",
+        "view": "/plugins/docker_challenges/assets/view.html",
     }
     scripts = {
-        'create': '/plugins/docker_challenges/assets/create.js',
-        'update': '/plugins/docker_challenges/assets/update.js',
-        'view': '/plugins/docker_challenges/assets/view.js',
+        "create": "/plugins/docker_challenges/assets/create.js",
+        "update": "/plugins/docker_challenges/assets/update.js",
+        "view": "/plugins/docker_challenges/assets/view.js",
     }
-    route = '/plugins/docker_challenges/assets'
-    blueprint = Blueprint('docker_challenges', __name__, template_folder='templates', static_folder='assets')
+    route = "/plugins/docker_challenges/assets"
+    blueprint = Blueprint(
+        "docker_challenges",
+        __name__,
+        template_folder="templates",
+        static_folder="assets",
+    )
 
     @staticmethod
     def update(challenge, request):
@@ -78,21 +90,21 @@ class DockerChallengeType(BaseChallenge):
         """
         challenge = DockerChallenge.query.filter_by(id=challenge.id).first()
         data = {
-            'id': challenge.id,
-            'name': challenge.name,
-            'value': challenge.value,
-            'docker_image': challenge.docker_image,
-            'description': challenge.description,
-            'category': challenge.category,
-            'state': challenge.state,
-            'max_attempts': challenge.max_attempts,
-            'type': challenge.type,
-            'type_data': {
-                'id': DockerChallengeType.id,
-                'name': DockerChallengeType.name,
-                'templates': DockerChallengeType.templates,
-                'scripts': DockerChallengeType.scripts,
-            }
+            "id": challenge.id,
+            "name": challenge.name,
+            "value": challenge.value,
+            "docker_image": challenge.docker_image,
+            "description": challenge.description,
+            "category": challenge.category,
+            "state": challenge.state,
+            "max_attempts": challenge.max_attempts,
+            "type": challenge.type,
+            "type_data": {
+                "id": DockerChallengeType.id,
+                "name": DockerChallengeType.name,
+                "templates": DockerChallengeType.templates,
+                "scripts": DockerChallengeType.scripts,
+            },
         }
         return data
 
@@ -105,7 +117,7 @@ class DockerChallengeType(BaseChallenge):
         :return:
         """
         data = request.form or request.get_json()
-        data['docker_type'] = 'container'
+        data["docker_type"] = "container"
         challenge = DockerChallenge(**data)
         db.session.add(challenge)
         db.session.commit()
@@ -148,13 +160,25 @@ class DockerChallengeType(BaseChallenge):
         docker = DockerConfig.query.filter_by(id=1).first()
         try:
             if is_teams_mode():
-                docker_containers = DockerChallengeTracker.query.filter_by(
-                    docker_image=challenge.docker_image).filter_by(team_id=team.id).first()
+                docker_containers = (
+                    DockerChallengeTracker.query.filter_by(
+                        docker_image=challenge.docker_image
+                    )
+                    .filter_by(team_id=team.id)
+                    .first()
+                )
             else:
-                docker_containers = DockerChallengeTracker.query.filter_by(
-                    docker_image=challenge.docker_image).filter_by(user_id=user.id).first()
+                docker_containers = (
+                    DockerChallengeTracker.query.filter_by(
+                        docker_image=challenge.docker_image
+                    )
+                    .filter_by(user_id=user.id)
+                    .first()
+                )
             delete_container(docker, docker_containers.instance_id)
-            DockerChallengeTracker.query.filter_by(instance_id=docker_containers.instance_id).delete()
+            DockerChallengeTracker.query.filter_by(
+                instance_id=docker_containers.instance_id
+            ).delete()
         except:
             pass
         solve = Solves(
@@ -167,7 +191,7 @@ class DockerChallengeType(BaseChallenge):
         db.session.add(solve)
         db.session.commit()
         # trying if this solces the detached instance error...
-        #db.session.close()
+        # db.session.close()
 
     @staticmethod
     def fail(user, team, challenge, request):
@@ -190,4 +214,4 @@ class DockerChallengeType(BaseChallenge):
         )
         db.session.add(wrong)
         db.session.commit()
-        #db.session.close()
+        # db.session.close()

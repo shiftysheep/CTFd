@@ -1,7 +1,15 @@
 from flask import Blueprint
 
-from CTFd.models import (ChallengeFiles, Challenges, Fails, Flags, Hints,
-                         Solves, Tags, db)
+from CTFd.models import (
+    ChallengeFiles,
+    Challenges,
+    Fails,
+    Flags,
+    Hints,
+    Solves,
+    Tags,
+    db,
+)
 from CTFd.plugins.challenges import BaseChallenge
 from CTFd.plugins.flags import get_flag_class
 from CTFd.utils.config import is_teams_mode
@@ -9,25 +17,29 @@ from CTFd.utils.uploads import delete_file
 from CTFd.utils.user import get_ip
 
 from ..functions.services import delete_service
-from ..models.models import (DockerChallengeTracker, DockerConfig,
-                             DockerServiceChallenge)
+from ..models.models import DockerChallengeTracker, DockerConfig, DockerServiceChallenge
 
 
 class DockerServiceChallengeType(BaseChallenge):
     id = "docker_service"
     name = "docker_service"
     templates = {
-        'create': '/plugins/docker_challenges/assets/create_service.html',
-        'update': '/plugins/docker_challenges/assets/update_service.html',
-        'view': '/plugins/docker_challenges/assets/view.html',
+        "create": "/plugins/docker_challenges/assets/create_service.html",
+        "update": "/plugins/docker_challenges/assets/update_service.html",
+        "view": "/plugins/docker_challenges/assets/view.html",
     }
     scripts = {
-        'create': '/plugins/docker_challenges/assets/create_service.js',
-        'update': '/plugins/docker_challenges/assets/update_service.js',
-        'view': '/plugins/docker_challenges/assets/view.js',
+        "create": "/plugins/docker_challenges/assets/create_service.js",
+        "update": "/plugins/docker_challenges/assets/update_service.js",
+        "view": "/plugins/docker_challenges/assets/view.js",
     }
-    route = '/plugins/docker_challenges/assets'
-    blueprint = Blueprint('docker_service_challenges', __name__, template_folder='templates', static_folder='assets')
+    route = "/plugins/docker_challenges/assets"
+    blueprint = Blueprint(
+        "docker_service_challenges",
+        __name__,
+        template_folder="templates",
+        static_folder="assets",
+    )
 
     @staticmethod
     def update(challenge, request):
@@ -40,9 +52,9 @@ class DockerServiceChallengeType(BaseChallenge):
         :return:
         """
         data = request.form or request.get_json()
-        data['docker_secrets'] = data['docker_secrets_array']
-        data['docker_type'] = 'service'
-        del data['docker_secrets_array']
+        data["docker_secrets"] = data["docker_secrets_array"]
+        data["docker_type"] = "service"
+        del data["docker_secrets_array"]
         for attr, value in data.items():
             setattr(challenge, attr, value)
 
@@ -81,22 +93,22 @@ class DockerServiceChallengeType(BaseChallenge):
         """
         challenge = DockerServiceChallenge.query.filter_by(id=challenge.id).first()
         data = {
-            'id': challenge.id,
-            'name': challenge.name,
-            'value': challenge.value,
-            'docker_image': challenge.docker_image,
-            'description': challenge.description,
-            'category': challenge.category,
-            'secrets': challenge.docker_secrets.split(','),
-            'state': challenge.state,
-            'max_attempts': challenge.max_attempts,
-            'type': challenge.type,
-            'type_data': {
-                'id': DockerServiceChallengeType.id,
-                'name': DockerServiceChallengeType.name,
-                'templates': DockerServiceChallengeType.templates,
-                'scripts': DockerServiceChallengeType.scripts,
-            }
+            "id": challenge.id,
+            "name": challenge.name,
+            "value": challenge.value,
+            "docker_image": challenge.docker_image,
+            "description": challenge.description,
+            "category": challenge.category,
+            "secrets": challenge.docker_secrets.split(","),
+            "state": challenge.state,
+            "max_attempts": challenge.max_attempts,
+            "type": challenge.type,
+            "type_data": {
+                "id": DockerServiceChallengeType.id,
+                "name": DockerServiceChallengeType.name,
+                "templates": DockerServiceChallengeType.templates,
+                "scripts": DockerServiceChallengeType.scripts,
+            },
         }
         return data
 
@@ -109,9 +121,9 @@ class DockerServiceChallengeType(BaseChallenge):
         :return:
         """
         data = request.form or request.get_json()
-        data['docker_secrets'] = data['docker_secrets_array']
-        data['docker_type'] = 'service'
-        del data['docker_secrets_array']
+        data["docker_secrets"] = data["docker_secrets_array"]
+        data["docker_type"] = "service"
+        del data["docker_secrets_array"]
         challenge = DockerServiceChallenge(**data)
         db.session.add(challenge)
         db.session.commit()
@@ -154,13 +166,25 @@ class DockerServiceChallengeType(BaseChallenge):
         docker = DockerConfig.query.filter_by(id=1).first()
         try:
             if is_teams_mode():
-                docker_containers = DockerChallengeTracker.query.filter_by(
-                    docker_image=challenge.docker_image).filter_by(team_id=team.id).first()
+                docker_containers = (
+                    DockerChallengeTracker.query.filter_by(
+                        docker_image=challenge.docker_image
+                    )
+                    .filter_by(team_id=team.id)
+                    .first()
+                )
             else:
-                docker_containers = DockerChallengeTracker.query.filter_by(
-                    docker_image=challenge.docker_image).filter_by(user_id=user.id).first()
+                docker_containers = (
+                    DockerChallengeTracker.query.filter_by(
+                        docker_image=challenge.docker_image
+                    )
+                    .filter_by(user_id=user.id)
+                    .first()
+                )
             delete_service(docker, docker_containers.instance_id)
-            DockerChallengeTracker.query.filter_by(instance_id=docker_containers.instance_id).delete()
+            DockerChallengeTracker.query.filter_by(
+                instance_id=docker_containers.instance_id
+            ).delete()
         except:
             pass
         solve = Solves(
@@ -173,7 +197,7 @@ class DockerServiceChallengeType(BaseChallenge):
         db.session.add(solve)
         db.session.commit()
         # trying if this solces the detached instance error...
-        #db.session.close()
+        # db.session.close()
 
     @staticmethod
     def fail(user, team, challenge, request):
@@ -196,4 +220,4 @@ class DockerServiceChallengeType(BaseChallenge):
         )
         db.session.add(wrong)
         db.session.commit()
-        #db.session.close()
+        # db.session.close()

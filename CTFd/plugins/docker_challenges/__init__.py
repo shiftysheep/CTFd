@@ -10,18 +10,26 @@ from CTFd.plugins.challenges import CHALLENGE_CLASSES
 from CTFd.utils.config import is_teams_mode
 from CTFd.utils.decorators import admins_only
 
-from .api import (active_docker_namespace, container_namespace,
-                  docker_namespace, kill_container, secret_namespace)
+from .api import (
+    active_docker_namespace,
+    container_namespace,
+    docker_namespace,
+    kill_container,
+    secret_namespace,
+)
 from .functions.general import get_repositories
 from .models.container import DockerChallengeType
-from .models.models import (DockerChallengeTracker, DockerConfig,
-                            DockerConfigForm)
+from .models.models import DockerChallengeTracker, DockerConfig, DockerConfigForm
 from .models.service import DockerServiceChallengeType
 
 
 def define_docker_admin(app):
-    admin_docker_config = Blueprint('admin_docker_config', __name__, template_folder='templates',
-                                    static_folder='assets')
+    admin_docker_config = Blueprint(
+        "admin_docker_config",
+        __name__,
+        template_folder="templates",
+        static_folder="assets",
+    )
 
     @admin_docker_config.route("/admin/docker_config", methods=["GET", "POST"])
     @admins_only
@@ -29,53 +37,53 @@ def define_docker_admin(app):
         docker = DockerConfig.query.filter_by(id=1).first()
         form = DockerConfigForm()
         if request.method == "POST":
-            if docker:
-                b = docker
-            else:
-                b = DockerConfig()
+            b = docker or DockerConfig()
             try:
-                ca_cert = request.files['ca_cert'].stream.read()
-            except:
+                ca_cert = request.files["ca_cert"].stream.read()
+            except Exception:
                 print(traceback.print_exc())
-                ca_cert = ''
+                ca_cert = ""
             try:
-                client_cert = request.files['client_cert'].stream.read()
-            except:
+                client_cert = request.files["client_cert"].stream.read()
+            except Exception:
                 print(traceback.print_exc())
-                client_cert = ''
+                client_cert = ""
             try:
-                client_key = request.files['client_key'].stream.read()
-            except:
+                client_key = request.files["client_key"].stream.read()
+            except Exception:
                 print(traceback.print_exc())
-                client_key = ''
-            if len(ca_cert) != 0: 
-                tmpca = tempfile.NamedTemporaryFile(mode="wb",dir="/tmp", delete=False)
+                client_key = ""
+            if ca_cert != "":
+                tmpca = tempfile.NamedTemporaryFile(mode="wb", dir="/tmp", delete=False)
                 tmpca.write(ca_cert)
                 tmpca.seek(0)
                 b.ca_cert = tmpca.name
-            if len(client_cert) != 0:
-                tmpcert = tempfile.NamedTemporaryFile(mode="wb",dir="/tmp", delete=False)
+            if client_cert != "":
+                tmpcert = tempfile.NamedTemporaryFile(
+                    mode="wb", dir="/tmp", delete=False
+                )
                 tmpcert.write(client_cert)
                 tmpcert.seek(0)
                 b.client_cert = tmpcert.name
-            if len(client_key) != 0: 
-                tmpkey = tempfile.NamedTemporaryFile(mode="wb",dir="/tmp", delete=False)
+            if client_key != "":
+                tmpkey = tempfile.NamedTemporaryFile(
+                    mode="wb", dir="/tmp", delete=False
+                )
                 tmpkey.write(client_key)
                 tmpkey.seek(0)
                 b.client_key = tmpkey.name
-            b.hostname = request.form['hostname']
-            b.tls_enabled = request.form['tls_enabled']
-            if b.tls_enabled == "True":
-                b.tls_enabled = True
-            else:
-                b.tls_enabled = False
+            b.hostname = request.form["hostname"]
+            b.tls_enabled = request.form["tls_enabled"]
+            b.tls_enabled = b.tls_enabled == "True"
             if not b.tls_enabled:
                 b.ca_cert = None
                 b.client_cert = None
                 b.client_key = None
             try:
-                b.repositories = ','.join(request.form.to_dict(flat=False)['repositories'])
-            except:
+                b.repositories = ",".join(
+                    request.form.to_dict(flat=False)["repositories"]
+                )
+            except Exception:
                 print(traceback.print_exc())
                 b.repositories = None
             db.session.add(b)
@@ -83,29 +91,35 @@ def define_docker_admin(app):
             docker = DockerConfig.query.filter_by(id=1).first()
         try:
             repos = get_repositories(docker)
-        except:
+        except Exception:
             print(traceback.print_exc())
-            repos = list()
-        if len(repos) == 0:
+            repos = []
+        if not repos:
             form.repositories.choices = [("ERROR", "Failed to Connect to Docker")]
         else:
             form.repositories.choices = [(d, d) for d in repos]
         dconfig = DockerConfig.query.first()
         try:
             selected_repos = dconfig.repositories
-            if selected_repos == None:
-                selected_repos = list()
-        except:
+            if selected_repos is None:
+                selected_repos = []
+        except Exception:
             print(traceback.print_exc())
             selected_repos = []
-        return render_template("docker_config.html", config=dconfig, form=form, repos=selected_repos)
+        return render_template(
+            "docker_config.html", config=dconfig, form=form, repos=selected_repos
+        )
 
     app.register_blueprint(admin_docker_config)
 
 
 def define_docker_status(app):
-    admin_docker_status = Blueprint('admin_docker_status', __name__, template_folder='templates',
-                                    static_folder='assets')
+    admin_docker_status = Blueprint(
+        "admin_docker_status",
+        __name__,
+        template_folder="templates",
+        static_folder="assets",
+    )
 
     @admin_docker_status.route("/admin/docker_status", methods=["GET", "POST"])
     @admins_only
@@ -124,18 +138,15 @@ def define_docker_status(app):
     app.register_blueprint(admin_docker_status)
 
 
-
-
-
 def load(app):
     app.db.create_all()
-    CHALLENGE_CLASSES['docker'] = DockerChallengeType
-    CHALLENGE_CLASSES['docker_service'] = DockerServiceChallengeType
-    register_plugin_assets_directory(app, base_path='/plugins/docker_challenges/assets')
+    CHALLENGE_CLASSES["docker"] = DockerChallengeType
+    CHALLENGE_CLASSES["docker_service"] = DockerServiceChallengeType
+    register_plugin_assets_directory(app, base_path="/plugins/docker_challenges/assets")
     define_docker_admin(app)
     define_docker_status(app)
-    CTFd_API_v1.add_namespace(docker_namespace, '/docker')
-    CTFd_API_v1.add_namespace(container_namespace, '/container')
-    CTFd_API_v1.add_namespace(active_docker_namespace, '/docker_status')
-    CTFd_API_v1.add_namespace(kill_container, '/nuke')
-    CTFd_API_v1.add_namespace(secret_namespace, '/secret')
+    CTFd_API_v1.add_namespace(docker_namespace, "/docker")
+    CTFd_API_v1.add_namespace(container_namespace, "/container")
+    CTFd_API_v1.add_namespace(active_docker_namespace, "/docker_status")
+    CTFd_API_v1.add_namespace(kill_container, "/nuke")
+    CTFd_API_v1.add_namespace(secret_namespace, "/secret")

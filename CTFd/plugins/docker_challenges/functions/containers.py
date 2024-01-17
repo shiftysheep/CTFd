@@ -8,37 +8,47 @@ from ..functions.general import do_request, get_required_ports
 def find_existing(docker, name):
     r = do_request(docker, url=f'/containers/json?all=1&filters={{"name":["{name}"]}}')
     if len(r.json()) == 1:
-        return r.json()[0]['Id']
-    
+        return r.json()[0]["Id"]
 
 
 def create_container(docker, image, team, portbl):
     needed_ports = get_required_ports(docker, image)
     team = hashlib.md5(team.encode("utf-8")).hexdigest()[:10]
-    container_name = "%s_%s" % (image.split(':')[1], team)
-    assigned_ports = dict()
-    for i in needed_ports:
+    container_name = f'{image.split(":")[1]}_{team}'
+    assigned_ports = {}
+    for _ in needed_ports:
         while True:
             assigned_port = random.choice(range(30000, 60000))
             if assigned_port not in portbl:
-                assigned_ports['%s/tcp' % assigned_port] = {}
+                assigned_ports[f"{assigned_port}/tcp"] = {}
                 break
-    ports = dict()
-    bindings = dict()
+    ports = {}
+    bindings = {}
     tmp_ports = list(assigned_ports.keys())
     for i in needed_ports:
         ports[i] = {}
         bindings[i] = [{"HostPort": tmp_ports.pop()}]
-    data = json.dumps({"Image": image, "ExposedPorts": ports, "HostConfig": {"PortBindings": bindings}})
-    r = do_request(docker, url=f"/containers/create?name={container_name}", method="POST", data=data)
+    data = json.dumps(
+        {
+            "Image": image,
+            "ExposedPorts": ports,
+            "HostConfig": {"PortBindings": bindings},
+        }
+    )
+    r = do_request(
+        docker,
+        url=f"/containers/create?name={container_name}",
+        method="POST",
+        data=data,
+    )
     if r.status_code == 409:
-        instance_id = find_existing(docker, container_name)        
+        instance_id = find_existing(docker, container_name)
     else:
-        instance_id = r.json()['Id']
+        instance_id = r.json()["Id"]
     do_request(docker, url=f"/containers/{instance_id}/start", method="POST")
     return instance_id, data
 
 
 def delete_container(docker, instance_id):
-    r = do_request(docker, f'/containers/{instance_id}?force=true', method='DELETE')
+    r = do_request(docker, f"/containers/{instance_id}?force=true", method="DELETE")
     return r.ok

@@ -1,2 +1,5 @@
-from .api import (active_docker_namespace, container_namespace,
-                  docker_namespace, kill_container, secret_namespace)
+from .api import active_docker_namespace  # noqa: F401
+from .api import container_namespace  # noqa: F401
+from .api import docker_namespace  # noqa: F401
+from .api import kill_container  # noqa: F401
+from .api import secret_namespace  # noqa: F401

@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import abort, request
 from flask_restx import Namespace, Resource
@@ -10,7 +10,6 @@ from CTFd.utils.dates import unix_time
 from CTFd.utils.decorators import admins_only, authed_only
 from CTFd.utils.user import get_current_team, get_current_user
 
-from datetime import timezone
 from ..functions.containers import create_container, delete_container
 from ..functions.general import get_repositories, get_secrets, get_unavailable_ports
 from ..functions.services import create_service, delete_service

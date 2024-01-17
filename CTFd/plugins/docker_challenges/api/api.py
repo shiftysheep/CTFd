@@ -10,6 +10,7 @@ from CTFd.utils.dates import unix_time
 from CTFd.utils.decorators import admins_only, authed_only
 from CTFd.utils.user import get_current_team, get_current_user
 
+from datetime import timezone
 from ..functions.containers import create_container, delete_container
 from ..functions.general import get_repositories, get_secrets, get_unavailable_ports
 from ..functions.services import create_service, delete_service
@@ -88,7 +89,6 @@ class KillContainerAPI(Resource):
 @container_namespace.route("", methods=["POST", "GET"])
 class ContainerAPI(Resource):
     @authed_only
-    # I wish this was Post... Issues with API/CSRF and whatnot. Open to a Issue solving this.
     def get(self):
         challenge_id = request.args.get("id")
         if not challenge_id:
@@ -130,12 +130,11 @@ class ContainerAPI(Resource):
             )
         # If this container is already created, we don't need another one.
         if (
-            check != None
-            and not (unix_time(datetime.utcnow()) - int(check.timestamp)) >= 300
+            check is not None
+            and unix_time(datetime.now(timezone.utc)) - int(check.timestamp) < 300
         ):
             return abort(403)
-        # The exception would be if we are reverting a box. So we'll delete it if it exists and has been around for more than 5 minutes.
-        elif check != None:
+        elif check is not None:
             delete_docker(docker, challenge.type, check.instance_id)
             if is_teams_mode():
                 DockerChallengeTracker.query.filter_by(team_id=session.id).filter_by(
@@ -165,7 +164,7 @@ class ContainerAPI(Resource):
             ports = [f"{i['HostPort']}" for p in ports_json for i in p]
         entry = DockerChallengeTracker(
             team_id=session.id if is_teams_mode() else None,
-            user_id=session.id if not is_teams_mode() else None,
+            user_id=None if is_teams_mode() else session.id,
             challenge_id=challenge_id,
             docker_image=challenge.docker_image,
             timestamp=unix_time(datetime.utcnow()),
@@ -195,22 +194,21 @@ class DockerStatus(Resource):
         else:
             session = get_current_user()
             tracker = DockerChallengeTracker.query.filter_by(user_id=session.id)
-        data = list()
-        for i in tracker:
-            data.append(
-                {
-                    "id": i.id,
-                    "team_id": i.team_id,
-                    "user_id": i.user_id,
-                    "challenge_id": i.challenge_id,
-                    "docker_image": i.docker_image,
-                    "timestamp": i.timestamp,
-                    "revert_time": i.revert_time,
-                    "instance_id": i.instance_id,
-                    "ports": i.ports.split(","),
-                    "host": str(docker.hostname).split(":")[0],
-                }
-            )
+        data = [
+            {
+                "id": i.id,
+                "team_id": i.team_id,
+                "user_id": i.user_id,
+                "challenge_id": i.challenge_id,
+                "docker_image": i.docker_image,
+                "timestamp": i.timestamp,
+                "revert_time": i.revert_time,
+                "instance_id": i.instance_id,
+                "ports": i.ports.split(","),
+                "host": str(docker.hostname).split(":")[0],
+            }
+            for i in tracker
+        ]
         return {"success": True, "data": data}
 
 
@@ -226,9 +224,7 @@ class DockerAPI(Resource):
         docker = DockerConfig.query.filter_by(id=1).first()
         images = get_repositories(docker, tags=True, repos=docker.repositories)
         if images:
-            data = list()
-            for i in images:
-                data.append({"name": i})
+            data = [{"name": i} for i in images]
             return {"success": True, "data": data}
         else:
             return {
@@ -249,9 +245,7 @@ class SecretAPI(Resource):
         docker = DockerConfig.query.filter_by(id=1).first()
         secrets = get_secrets(docker)
         if secrets:
-            data = list()
-            for i in secrets:
-                data.append({"name": i["Name"], "id": i["ID"]})
+            data = [{"name": i["Name"], "id": i["ID"]} for i in secrets]
             return {"success": True, "data": data}
         else:
             return {

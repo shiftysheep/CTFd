@@ -14,16 +14,16 @@ def find_existing(docker, name):
 def create_container(docker, image, team, portbl):
     needed_ports = get_required_ports(docker, image)
     team = hashlib.md5(team.encode("utf-8")).hexdigest()[:10]
-    container_name = "%s_%s" % (image.split(":")[1], team)
-    assigned_ports = dict()
-    for i in needed_ports:
+    container_name = f'{image.split(":")[1]}_{team}'
+    assigned_ports = {}
+    for _ in needed_ports:
         while True:
             assigned_port = random.choice(range(30000, 60000))
             if assigned_port not in portbl:
-                assigned_ports["%s/tcp" % assigned_port] = {}
+                assigned_ports[f"{assigned_port}/tcp"] = {}
                 break
-    ports = dict()
-    bindings = dict()
+    ports = {}
+    bindings = {}
     tmp_ports = list(assigned_ports.keys())
     for i in needed_ports:
         ports[i] = {}

@@ -13,7 +13,7 @@ def create_service(
     needed_ports = get_required_ports(docker, image)
     team = hashlib.md5(team.encode("utf-8")).hexdigest()[:10]
     service_name = f"svc_{image.split(':')[1]}{team}"
-    assigned_ports = list()
+    assigned_ports = []
     for i in needed_ports:
         tmpdict = {}
         while True:
@@ -27,7 +27,7 @@ def create_service(
                 assigned_ports.append(tmpdict)
                 break
     all_secrets = get_secrets(docker)
-    secrets_list = list()
+    secrets_list = []
     for image_secret in challenge.docker_secrets.split(","):
         for secret in all_secrets:
             if image_secret == secret["ID"]:
@@ -53,7 +53,7 @@ def create_service(
             "EndpointSpec": {"Mode": "vip", "Ports": assigned_ports},
         }
     )
-    r = do_request(docker, url=f"/services/create", method="POST", data=data)
+    r = do_request(docker, url="/services/create", method="POST", data=data)
     instance_id = r.json()["ID"]
     return instance_id, data
 

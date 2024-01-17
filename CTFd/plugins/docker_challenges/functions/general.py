@@ -23,7 +23,14 @@ def do_request(
         headers = {"Content-Type": "application/json"}
     try:
         if tls:
-            if method == "GET":
+            if method == "DELETE":
+                r = requests.delete(
+                    url=f"{BASE_URL}{url}",
+                    cert=(docker.client_cert, docker.client_key),
+                    verify=False,
+                    headers=headers,
+                )
+            elif method == "GET":
                 r = requests.get(
                     url=f"{BASE_URL}{url}",
                     cert=(docker.client_cert, docker.client_key),
@@ -38,20 +45,12 @@ def do_request(
                     headers=headers,
                     data=data,
                 )
-            elif method == "DELETE":
-                r = requests.delete(
-                    url=f"{BASE_URL}{url}",
-                    cert=(docker.client_cert, docker.client_key),
-                    verify=False,
-                    headers=headers,
-                )
-        else:
-            if method == "GET":
-                r = requests.get(url=f"{BASE_URL}{url}", headers=headers)
-            elif method == "POST":
-                r = requests.post(url=f"{BASE_URL}{url}", headers=headers, data=data)
-            elif method == "DELETE":
-                r = requests.delete(url=f"{BASE_URL}{url}", headers=headers)
+        elif method == "DELETE":
+            r = requests.delete(url=f"{BASE_URL}{url}", headers=headers)
+        elif method == "GET":
+            r = requests.get(url=f"{BASE_URL}{url}", headers=headers)
+        elif method == "POST":
+            r = requests.post(url=f"{BASE_URL}{url}", headers=headers, data=data)
     except:
         print(traceback.print_exc())
         r = []
@@ -61,27 +60,23 @@ def do_request(
 # For the Docker Config Page. Gets the Current Repositories available on the Docker Server.
 def get_repositories(docker, tags=False, repos=False):
     r = do_request(docker, "/images/json?all=1")
-    result = list()
+    result = []
     for i in r.json():
-        if not i["RepoTags"] == None:
-            if not i["RepoTags"][0].split(":")[0] == "<none>":
-                if repos:
-                    if not i["RepoTags"][0].split(":")[0] in repos:
-                        continue
-                if not tags:
-                    result.append(i["RepoTags"][0].split(":")[0])
-                else:
-                    result.append(i["RepoTags"][0])
+        if i["RepoTags"] is not None and i["RepoTags"][0].split(":")[0] != "<none>":
+            if repos and i["RepoTags"][0].split(":")[0] not in repos:
+                continue
+            if not tags:
+                result.append(i["RepoTags"][0].split(":")[0])
+            else:
+                result.append(i["RepoTags"][0])
     return list(set(result))
 
 
 def get_secrets(docker):
     r = do_request(docker, "/secrets")
-    tmplist = list()
+    tmplist = []
     for secret in r.json():
-        tmpdict = {}
-        tmpdict["ID"] = secret["ID"]
-        tmpdict["Name"] = secret["Spec"]["Name"]
+        tmpdict = {"ID": secret["ID"], "Name": secret["Spec"]["Name"]}
         tmplist.append(tmpdict)
     return tmplist
 
@@ -93,23 +88,22 @@ def delete_secret(docker: DockerConfig, id: str):
 
 def get_unavailable_ports(docker):
     r = do_request(docker, "/containers/json?all=1")
-    result = list()
+    result = []
     for i in r.json():
-        if not i["Ports"] == []:
-            for p in i["Ports"]:
-                if p.get("PublicPort"):
-                    result.append(p["PublicPort"])
+        if i["Ports"] != []:
+            result.extend(p["PublicPort"] for p in i["Ports"] if p.get("PublicPort"))
     r = do_request(docker, "/services?all=1")
     for i in r.json():
         endpoint = i["Endpoint"]["Spec"]
-        if not endpoint == {}:
-            for p in endpoint["Ports"]:
-                if p.get("PublishedPort"):
-                    result.append(p["PublishedPort"])
+        if endpoint != {}:
+            result.extend(
+                p["PublishedPort"]
+                for p in endpoint["Ports"]
+                if p.get("PublishedPort")
+            )
     return result
 
 
 def get_required_ports(docker, image):
     r = do_request(docker, f"/images/{image}/json?all=1")
-    result = r.json()["Config"]["ExposedPorts"].keys()
-    return result
+    return r.json()["Config"]["ExposedPorts"].keys()

@@ -37,38 +37,35 @@ def define_docker_admin(app):
         docker = DockerConfig.query.filter_by(id=1).first()
         form = DockerConfigForm()
         if request.method == "POST":
-            if docker:
-                b = docker
-            else:
-                b = DockerConfig()
+            b = docker or DockerConfig()
             try:
                 ca_cert = request.files["ca_cert"].stream.read()
-            except:
+            except Exception:
                 print(traceback.print_exc())
                 ca_cert = ""
             try:
                 client_cert = request.files["client_cert"].stream.read()
-            except:
+            except Exception:
                 print(traceback.print_exc())
                 client_cert = ""
             try:
                 client_key = request.files["client_key"].stream.read()
-            except:
+            except Exception:
                 print(traceback.print_exc())
                 client_key = ""
-            if len(ca_cert) != 0:
+            if ca_cert != "":
                 tmpca = tempfile.NamedTemporaryFile(mode="wb", dir="/tmp", delete=False)
                 tmpca.write(ca_cert)
                 tmpca.seek(0)
                 b.ca_cert = tmpca.name
-            if len(client_cert) != 0:
+            if client_cert != "":
                 tmpcert = tempfile.NamedTemporaryFile(
                     mode="wb", dir="/tmp", delete=False
                 )
                 tmpcert.write(client_cert)
                 tmpcert.seek(0)
                 b.client_cert = tmpcert.name
-            if len(client_key) != 0:
+            if client_key != "":
                 tmpkey = tempfile.NamedTemporaryFile(
                     mode="wb", dir="/tmp", delete=False
                 )
@@ -77,10 +74,7 @@ def define_docker_admin(app):
                 b.client_key = tmpkey.name
             b.hostname = request.form["hostname"]
             b.tls_enabled = request.form["tls_enabled"]
-            if b.tls_enabled == "True":
-                b.tls_enabled = True
-            else:
-                b.tls_enabled = False
+            b.tls_enabled = b.tls_enabled == "True"
             if not b.tls_enabled:
                 b.ca_cert = None
                 b.client_cert = None
@@ -89,7 +83,7 @@ def define_docker_admin(app):
                 b.repositories = ",".join(
                     request.form.to_dict(flat=False)["repositories"]
                 )
-            except:
+            except Exception:
                 print(traceback.print_exc())
                 b.repositories = None
             db.session.add(b)
@@ -97,19 +91,19 @@ def define_docker_admin(app):
             docker = DockerConfig.query.filter_by(id=1).first()
         try:
             repos = get_repositories(docker)
-        except:
+        except Exception:
             print(traceback.print_exc())
-            repos = list()
-        if len(repos) == 0:
+            repos = []
+        if not repos:
             form.repositories.choices = [("ERROR", "Failed to Connect to Docker")]
         else:
             form.repositories.choices = [(d, d) for d in repos]
         dconfig = DockerConfig.query.first()
         try:
             selected_repos = dconfig.repositories
-            if selected_repos == None:
-                selected_repos = list()
-        except:
+            if selected_repos is None:
+                selected_repos = []
+        except Exception:
             print(traceback.print_exc())
             selected_repos = []
         return render_template(

@@ -58,7 +58,7 @@ def do_request(
 
 
 # For the Docker Config Page. Gets the Current Repositories available on the Docker Server.
-def get_repositories(docker, tags=False, repos=False):
+def get_repositories(docker: DockerConfig, tags: bool = False, repos: bool = False):
     r = do_request(docker, "/images/json?all=1")
     result = []
     for i in r.json():

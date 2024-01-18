@@ -27,10 +27,7 @@ def define_terminal_app(app):
         jumpbox = JumpboxConfig.query.filter_by(id=1).first()
         form = JumpboxConfigForm()
         if request.method == "POST":
-            if jumpbox:
-                j = jumpbox
-            else:
-                j = JumpboxConfig()
+            j = jumpbox or JumpboxConfig()
             if request.form.get("enabled"):
                 j.enabled = request.form["enabled"] == "true"
                 j.hostname = request.form["hostname"]
@@ -45,18 +42,19 @@ def define_terminal_app(app):
                     j.private_key = temppk.name
                     os.chmod(j.private_key, 0o600)
                 else:
-                    j.private_key = jumpbox.private_key if jumpbox.private_key else ""
+                    j.private_key = jumpbox.private_key or ""
             else:
                 j.enabled = False
-                j.hostname = jumpbox.hostname if jumpbox.hostname else None
-                j.username = jumpbox.username if jumpbox.username else None
-                j.private_key = jumpbox.private_key if jumpbox.private_key else None
+                j.hostname = jumpbox.hostname or None
+                j.username = jumpbox.username or None
+                j.private_key = jumpbox.private_key or None
             db.session.add(j)
             db.session.commit()
             jumpbox = JumpboxConfig.query.filter_by(id=1).first()
-        jumpbox.private_key = (
-            jumpbox.private_key if Path(jumpbox.private_key).exists() else None
-        )
+        if jumpbox:
+            jumpbox.private_key = (
+                jumpbox.private_key if Path(jumpbox.private_key).exists() else None
+            )
         return render_template("jumpbox_config.html", config=jumpbox, form=form)
 
     app.register_blueprint(admin_jumpbox_config)
@@ -107,7 +105,7 @@ def define_jumpbox_user_status(app):
                 username = existing.username
                 password = existing.password
             else:
-                randomvalue = uuid4().hex[0:16]
+                randomvalue = uuid4().hex[:16]
                 username = randomvalue[:8]
                 password = randomvalue[8:]
                 jumpbox.username = username

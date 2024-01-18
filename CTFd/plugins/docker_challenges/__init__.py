@@ -89,10 +89,13 @@ def define_docker_admin(app):
             db.session.add(b)
             db.session.commit()
             docker = DockerConfig.query.filter_by(id=1).first()
-        try:
-            repos = get_repositories(docker)
-        except Exception:
-            print(traceback.print_exc())
+        if docker:
+            try:
+                repos = get_repositories(docker)
+            except Exception:
+                print(traceback.print_exc())
+                repos = []
+        else:
             repos = []
         if not repos:
             form.repositories.choices = [("ERROR", "Failed to Connect to Docker")]

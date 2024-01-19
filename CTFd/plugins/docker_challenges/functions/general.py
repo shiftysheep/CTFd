@@ -138,7 +138,9 @@ def create_docker_config(
         docker.ca_cert = None
         docker.client_cert = None
         docker.client_key = None
-    docker.repositories = ",".join(request.form.to_dict(flat=False).get("repositories"))
+    repositories = request.form.to_dict(flat=False).get("repositories")
+    print(repositories)
+    docker.repositories = ",".join(repositories)
     db.session.add(docker)
     db.session.commit()
     return DockerConfig.query.filter_by(id=1).first()

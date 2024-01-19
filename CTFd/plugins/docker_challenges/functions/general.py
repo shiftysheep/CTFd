@@ -1,10 +1,12 @@
 import logging
 import tempfile
 import traceback
-from typing import Optional
+from typing import Optional, Tuple
 
 import requests
-from flask import Request, request
+from flask import Request
+
+from CTFd.models import db
 
 from ..models.models import DockerConfig
 
@@ -32,13 +34,6 @@ def do_request(
                 verify=docker.ca_cert,
                 headers=headers,
             )
-        elif method == "GET":
-            r = requests.get(
-                url=f"{BASE_URL}{url}",
-                cert=(docker.client_cert, docker.client_key),
-                verify=docker.ca_cert,
-                headers=headers,
-            )
         elif method == "POST":
             r = requests.post(
                 url=f"{BASE_URL}{url}",
@@ -47,12 +42,19 @@ def do_request(
                 headers=headers,
                 data=data,
             )
+        else:
+            r = requests.get(
+                url=f"{BASE_URL}{url}",
+                cert=(docker.client_cert, docker.client_key),
+                verify=docker.ca_cert,
+                headers=headers,
+            )
     elif method == "DELETE":
         r = requests.delete(url=f"{BASE_URL}{url}", headers=headers)
-    elif method == "GET":
-        r = requests.get(url=f"{BASE_URL}{url}", headers=headers)
     elif method == "POST":
         r = requests.post(url=f"{BASE_URL}{url}", headers=headers, data=data)
+    else:
+        r = requests.get(url=f"{BASE_URL}{url}", headers=headers)
     return r
 
 
@@ -119,3 +121,37 @@ def create_temp_file(in_file: bytes) -> str:
 def get_file(request: Request, file_name: str) -> bytes:
     contents = request.files.get(file_name)
     return contents.stream.read() if contents else b""
+
+
+def create_docker_config(
+    request: Request, docker: Optional[DockerConfig]
+) -> DockerConfig:
+    docker = docker or DockerConfig()
+    docker.hostname = request.form["hostname"]
+    docker.tls_enabled = request.form["tls_enabled"]
+    docker.tls_enabled = docker.tls_enabled == "True"
+    if docker.tls_enabled:
+        docker.ca_cert, docker.client_cert, docker.client_key = create_tls_files(
+            request=request
+        )
+    else:
+        docker.ca_cert = None
+        docker.client_cert = None
+        docker.client_key = None
+    docker.repositories = ",".join(request.form.to_dict(flat=False).get("repositories"))
+    db.session.add(docker)
+    db.session.commit()
+    return DockerConfig.query.filter_by(id=1).first()
+
+
+def create_tls_files(request: Request) -> Tuple[str, str, str]:
+    ca_cert = get_file(request=request, file_name="ca_cert")
+    client_cert = get_file(request=request, file_name="client_cert")
+    client_key = get_file(request=request, file_name="client_key")
+    if not all((ca_cert, client_cert, client_key)):
+        raise ValueError("Missing required TLS files.")
+    return (
+        create_temp_file(in_file=ca_cert),
+        create_temp_file(in_file=client_cert),
+        create_temp_file(in_file=client_key),
+    )

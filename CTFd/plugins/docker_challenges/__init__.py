@@ -1,5 +1,6 @@
 import tempfile
 import traceback
+from pathlib import Path
 
 from flask import Blueprint, render_template, request
 
@@ -17,7 +18,12 @@ from .api import (
     kill_container,
     secret_namespace,
 )
-from .functions.general import create_temp_file, get_file, get_repositories
+from .functions.general import (
+    create_docker_config,
+    create_temp_file,
+    get_file,
+    get_repositories,
+)
 from .models.container import DockerChallengeType
 from .models.models import DockerChallengeTracker, DockerConfig, DockerConfigForm
 from .models.service import DockerServiceChallengeType
@@ -37,35 +43,19 @@ def define_docker_admin(app):
         docker = DockerConfig.query.filter_by(id=1).first()
         form = DockerConfigForm()
         if request.method == "POST":
-            b = docker or DockerConfig()
-            b.hostname = request.form["hostname"]
-            b.tls_enabled = request.form["tls_enabled"]
-            b.tls_enabled = b.tls_enabled == "True"
-            if not b.tls_enabled:
-                b.ca_cert = None
-                b.client_cert = None
-                b.client_key = None
-            else:
-                ca_cert = get_file(request=request, file_name="ca_cert")
-                client_cert = get_file(request=request, file_name="client_cert")
-                client_key = get_file(request=request, file_name="client_key")
-                if ca_cert:
-                    b.ca_cert = create_temp_file(in_file=ca_cert)
-                if client_cert:
-                    b.client_cert = create_temp_file(in_file=client_cert)
-                if client_key:
-                    b.client_key = create_temp_file(in_file=client_key)
-            b.repositories = ",".join(
-                request.form.to_dict(flat=False).get("repositories")
+            docker = create_docker_config(request=request, docker=docker)
+        if docker:
+            try:
+                repos = get_repositories(docker)
+            except OSError:
+                repos = []
+            form.repositories.choices = (
+                [(d, d) for d in repos]
+                if repos
+                else [("WARN", "No repositories available")]
             )
-            db.session.add(b)
-            db.session.commit()
-            docker = DockerConfig.query.filter_by(id=1).first()
-        repos = get_repositories(docker) if docker else []
-        if not repos:
-            form.repositories.choices = [("ERROR", "No repositories available")]
         else:
-            form.repositories.choices = [(d, d) for d in repos]
+            form.repositories.choices = [("INFO", "Docker not configured")]
         dconfig = DockerConfig.query.first()
         selected_repos = dconfig.repositories
         if selected_repos is None:

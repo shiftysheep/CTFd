@@ -17,7 +17,7 @@ from .api import (
     kill_container,
     secret_namespace,
 )
-from .functions.general import get_repositories
+from .functions.general import create_temp_file, get_file, get_repositories
 from .models.container import DockerChallengeType
 from .models.models import DockerChallengeTracker, DockerConfig, DockerConfigForm
 from .models.service import DockerServiceChallengeType
@@ -38,40 +38,6 @@ def define_docker_admin(app):
         form = DockerConfigForm()
         if request.method == "POST":
             b = docker or DockerConfig()
-            try:
-                ca_cert = request.files["ca_cert"].stream.read()
-            except Exception:
-                print(traceback.print_exc())
-                ca_cert = ""
-            try:
-                client_cert = request.files["client_cert"].stream.read()
-            except Exception:
-                print(traceback.print_exc())
-                client_cert = ""
-            try:
-                client_key = request.files["client_key"].stream.read()
-            except Exception:
-                print(traceback.print_exc())
-                client_key = ""
-            if ca_cert != "":
-                tmpca = tempfile.NamedTemporaryFile(mode="wb", dir="/tmp", delete=False)
-                tmpca.write(ca_cert)
-                tmpca.seek(0)
-                b.ca_cert = tmpca.name
-            if client_cert != "":
-                tmpcert = tempfile.NamedTemporaryFile(
-                    mode="wb", dir="/tmp", delete=False
-                )
-                tmpcert.write(client_cert)
-                tmpcert.seek(0)
-                b.client_cert = tmpcert.name
-            if client_key != "":
-                tmpkey = tempfile.NamedTemporaryFile(
-                    mode="wb", dir="/tmp", delete=False
-                )
-                tmpkey.write(client_key)
-                tmpkey.seek(0)
-                b.client_key = tmpkey.name
             b.hostname = request.form["hostname"]
             b.tls_enabled = request.form["tls_enabled"]
             b.tls_enabled = b.tls_enabled == "True"
@@ -79,35 +45,30 @@ def define_docker_admin(app):
                 b.ca_cert = None
                 b.client_cert = None
                 b.client_key = None
-            try:
-                b.repositories = ",".join(
-                    request.form.to_dict(flat=False)["repositories"]
-                )
-            except Exception:
-                print(traceback.print_exc())
-                b.repositories = None
+            else:
+                ca_cert = get_file(request=request, file_name="ca_cert")
+                client_cert = get_file(request=request, file_name="client_cert")
+                client_key = get_file(request=request, file_name="client_key")
+                if ca_cert:
+                    b.ca_cert = create_temp_file(in_file=ca_cert)
+                if client_cert:
+                    b.client_cert = create_temp_file(in_file=client_cert)
+                if client_key:
+                    b.client_key = create_temp_file(in_file=client_key)
+            b.repositories = ",".join(
+                request.form.to_dict(flat=False).get("repositories")
+            )
             db.session.add(b)
             db.session.commit()
             docker = DockerConfig.query.filter_by(id=1).first()
-        if docker:
-            try:
-                repos = get_repositories(docker)
-            except Exception:
-                print(traceback.print_exc())
-                repos = []
-        else:
-            repos = []
+        repos = get_repositories(docker) if docker else []
         if not repos:
-            form.repositories.choices = [("ERROR", "Failed to Connect to Docker")]
+            form.repositories.choices = [("ERROR", "No repositories available")]
         else:
             form.repositories.choices = [(d, d) for d in repos]
         dconfig = DockerConfig.query.first()
-        try:
-            selected_repos = dconfig.repositories
-            if selected_repos is None:
-                selected_repos = []
-        except Exception:
-            print(traceback.print_exc())
+        selected_repos = dconfig.repositories
+        if selected_repos is None:
             selected_repos = []
         return render_template(
             "docker_config.html", config=dconfig, form=form, repos=selected_repos

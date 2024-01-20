@@ -133,7 +133,7 @@ def create_docker_config(
     docker.tls_enabled = docker.tls_enabled == "True"
     if docker.tls_enabled:
         docker.ca_cert, docker.client_cert, docker.client_key = create_tls_files(
-            request=request
+            request=request, docker=docker
         )
     else:
         docker.ca_cert = None

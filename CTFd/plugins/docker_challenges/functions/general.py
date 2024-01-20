@@ -1,6 +1,7 @@
 import logging
 import tempfile
 import traceback
+from pathlib import Path
 from typing import Optional, Tuple
 
 import requests
@@ -140,20 +141,25 @@ def create_docker_config(
         docker.client_key = None
     repositories = request.form.to_dict(flat=False).get("repositories")
     print(repositories)
-    docker.repositories = ",".join(repositories)
+    docker.repositories = ",".join(repositories) if repositories else None
     db.session.add(docker)
     db.session.commit()
     return DockerConfig.query.filter_by(id=1).first()
 
 
-def create_tls_files(request: Request) -> Tuple[str, str, str]:
+def create_tls_files(request: Request, docker: DockerConfig) -> Tuple[str, str, str]:
     ca_cert = get_file(request=request, file_name="ca_cert")
     client_cert = get_file(request=request, file_name="client_cert")
     client_key = get_file(request=request, file_name="client_key")
-    if not all((ca_cert, client_cert, client_key)):
+    req_files = all((ca_cert, client_cert, client_key))
+    config_files = (docker.ca_cert, docker.client_cert, docker.client_key)
+    if req_files:
+        return (
+            create_temp_file(in_file=ca_cert),
+            create_temp_file(in_file=client_cert),
+            create_temp_file(in_file=client_key),
+        )
+    elif all((Path(config).exists() for config in config_files)):
+        return config_files
+    else:
         raise ValueError("Missing required TLS files.")
-    return (
-        create_temp_file(in_file=ca_cert),
-        create_temp_file(in_file=client_cert),
-        create_temp_file(in_file=client_key),
-    )

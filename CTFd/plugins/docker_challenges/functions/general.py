@@ -60,6 +60,7 @@ def do_request(
 
 
 # For the Docker Config Page. Gets the Current Repositories available on the Docker Server.
+
 def get_repositories(
     docker: DockerConfig, tags: bool = False, repos: bool = False
 ) -> list:

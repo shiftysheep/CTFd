@@ -57,7 +57,7 @@ def define_docker_admin(app):
         else:
             form.repositories.choices = [("INFO", "Docker not configured")]
         dconfig = DockerConfig.query.first()
-        selected_repos = dconfig.repositories
+        selected_repos = dconfig.repositories if dconfig else None
         if selected_repos is None:
             selected_repos = []
         return render_template(

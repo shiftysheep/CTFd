@@ -107,7 +107,7 @@ function start_container(container, challenge_id) {
         });
 }
 
-let modal =
+var modal =
     '<div class="modal fade" tabindex="-1" role="dialog">' +
     '  <div class="modal-dialog" role="document">' +
     '    <div class="modal-content">' +
